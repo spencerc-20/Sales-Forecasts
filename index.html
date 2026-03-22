@@ -997,8 +997,8 @@ function renderLeadView(){
   let rows='';
   stats.forEach(({region,cfg,repTotal,repCoreProj,repEduProj,coreMgr,eduMgr,coreActual,eduActual,actual,catStats})=>{
     const totalMgr=coreMgr+eduMgr;
-    const coreVariance=coreMgr>0?(coreActual-coreMgr)/coreMgr*100:null;
-    const totalVariance=totalMgr>0?(actual-totalMgr)/totalMgr*100:null;
+    const coreVariance=coreMgr>0?coreActual/coreMgr*100:null;
+    const totalVariance=totalMgr>0?actual/totalMgr*100:null;
     // Rep drill rows (rep -> categories)
     let catRows='';
     cfg.reps.forEach((repName,ri)=>{
@@ -1092,9 +1092,9 @@ function renderLeadView(){
           value="${db[actKey(region,week,'edu')]||''}"
           oninput="updateActual('${region}',${week},'edu',this.value)" style="width:100px;display:block">
       </td>
-      <td><div class="lval" style="color:${coreVariance===null?'var(--muted)':coreVariance>=0?'var(--green)':'var(--red)'}">
+      <td><div class="lval" style="color:${coreVariance===null?'var(--muted)':coreVariance>=100?'var(--green)':'var(--red)'}">
         ${coreVariance!==null?coreVariance.toFixed(1)+'%':'—'}</div></td>
-      <td><div class="lval" style="color:${totalVariance===null?'var(--muted)':totalVariance>=0?'var(--green)':'var(--red)'}">
+      <td><div class="lval" style="color:${totalVariance===null?'var(--muted)':totalVariance>=100?'var(--green)':'var(--red)'}">
         ${totalVariance!==null?totalVariance.toFixed(1)+'%':'—'}</div></td>
     </tr>
     <tr class="region-sub-row" id="lead-region-drill-${regId}">
@@ -1169,8 +1169,8 @@ function renderLeadView(){
         <th class="r">Mgr Edu Forecast</th>
         <th class="r">Total Mgr Forecast</th>
         <th style="width:120px">Actual Closed</th>
-        <th class="r">Core Variance</th>
-        <th class="r">Total Variance</th>
+        <th class="r">Core Attainment</th>
+        <th class="r">Total Attainment</th>
       </tr></thead>
       <tbody>
         ${rows}
@@ -1240,17 +1240,17 @@ function updateActual(region,week,type,val){
     grandEduMgr+=eduMgr;
     // update individual row variance cells
     // cells: [0]=repTotal [1]=repCore [2]=coreMgr [3]=repEdu [4]=eduMgr [5]=totalMgr [6]=actual [7]=coreVar [8]=totalVar
-    const coreVar=coreMgr>0?(coreActual-coreMgr)/coreMgr*100:null;
+    const coreVar=coreMgr>0?coreActual/coreMgr*100:null;
     const totalMgr=coreMgr+eduMgr;
     const totalActual=coreActual+eduActual;
-    const totalVar=totalMgr>0?(totalActual-totalMgr)/totalMgr*100:null;
+    const totalVar=totalMgr>0?totalActual/totalMgr*100:null;
     const tds=document.querySelectorAll('.lead-table tbody tr');
     tds.forEach(tr=>{
       const lbl=tr.querySelector('.region-label');
       if(lbl&&lbl.textContent.trim()===r){
         const cells=tr.querySelectorAll('.lval');
-        if(cells[6]){ cells[6].textContent=coreVar!==null?coreVar.toFixed(1)+'%':'—'; cells[6].style.color=coreVar!==null?(coreVar>=0?'var(--green)':'var(--red)'):'var(--muted)'; }
-        if(cells[7]){ cells[7].textContent=totalVar!==null?totalVar.toFixed(1)+'%':'—'; cells[7].style.color=totalVar!==null?(totalVar>=0?'var(--green)':'var(--red)'):'var(--muted)'; }
+        if(cells[6]){ cells[6].textContent=coreVar!==null?coreVar.toFixed(1)+'%':'—'; cells[6].style.color=coreVar!==null?(coreVar>=100?'var(--green)':'var(--red)'):'var(--muted)'; }
+        if(cells[7]){ cells[7].textContent=totalVar!==null?totalVar.toFixed(1)+'%':'—'; cells[7].style.color=totalVar!==null?(totalVar>=100?'var(--green)':'var(--red)'):'var(--muted)'; }
       }
     });
   });
@@ -1270,10 +1270,10 @@ function updateActual(region,week,type,val){
     if(cells[6]){
       cells[6].innerHTML=`<div style="font-size:11px">${grandCoreActual>0?'Core: '+fmt$(grandCoreActual):'—'}<br>${grandEduActual>0?'Edu: '+fmt$(grandEduActual):'—'}</div>`;
     }
-    const grandCoreVar=grandCoreMgr>0?(grandCoreActual-grandCoreMgr)/grandCoreMgr*100:null;
-    const grandTotalVar=grandTotalMgr>0?(grandActual-grandTotalMgr)/grandTotalMgr*100:null;
-    if(cells[7]){ cells[7].textContent=grandCoreVar!==null?grandCoreVar.toFixed(1)+'%':'—'; cells[7].style.color=grandCoreVar!==null?(grandCoreVar>=0?'var(--green)':'var(--red)'):'var(--muted)'; }
-    if(cells[8]){ cells[8].textContent=grandTotalVar!==null?grandTotalVar.toFixed(1)+'%':'—'; cells[8].style.color=grandTotalVar!==null?(grandTotalVar>=0?'var(--green)':'var(--red)'):'var(--muted)'; }
+    const grandCoreVar=grandCoreMgr>0?grandCoreActual/grandCoreMgr*100:null;
+    const grandTotalVar=grandTotalMgr>0?grandActual/grandTotalMgr*100:null;
+    if(cells[7]){ cells[7].textContent=grandCoreVar!==null?grandCoreVar.toFixed(1)+'%':'—'; cells[7].style.color=grandCoreVar!==null?(grandCoreVar>=100?'var(--green)':'var(--red)'):'var(--muted)'; }
+    if(cells[8]){ cells[8].textContent=grandTotalVar!==null?grandTotalVar.toFixed(1)+'%':'—'; cells[8].style.color=grandTotalVar!==null?(grandTotalVar>=100?'var(--green)':'var(--red)'):'var(--muted)'; }
   }
 }
 
