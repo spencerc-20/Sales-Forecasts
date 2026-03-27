@@ -468,10 +468,13 @@ async function saveDB(){
   if(firebaseAvailable()){
     try{
       if(_dirtyKeys.size === 0) return; // nothing changed
-      const patch = {};
-      _dirtyKeys.forEach(k => { patch[k] = db[k]; });
-      await getFirebaseDb().ref(SKEY).update(patch);
-      _dirtyKeys.clear();
+      // Write each dirty key to its own isolated Firebase path.
+      // This makes it physically impossible for one user's save to touch another user's data.
+      const keysToSave = [..._dirtyKeys];
+      await Promise.all(keysToSave.map(k =>
+        getFirebaseDb().ref(SKEY + '/' + k).set(db[k])
+      ));
+      keysToSave.forEach(k => _dirtyKeys.delete(k));
       return; // Firebase save succeeded
     }catch(e){
       console.error('Firebase save failed:', e);
@@ -1215,6 +1218,7 @@ function updateActual(region,week,type,val){
   const _ak=actKey(region,week,type);
   db[_ak]=val;
   _dirtyKeys.add(_ak);
+  autoSave();
   // refresh grand totals live
   let grandCoreActual=0,grandEduActual=0,grandCoreMgr=0,grandEduMgr=0;
   Object.entries(REGIONS).forEach(([r,cfg])=>{
