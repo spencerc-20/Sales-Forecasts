@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Sales Forecast Portal</title>
 
 <style>
@@ -450,12 +453,32 @@ function getFirebaseDb(){
 
 async function loadDB(){
   if(firebaseAvailable()){
-    try{
+    return new Promise((resolve) => {
       const db_ref = getFirebaseDb().ref(SKEY);
-      const snapshot = await db_ref.get();
-      db = snapshot.exists() ? snapshot.val() : {};
-      return;
-    }catch(e){ console.warn('Firebase unavailable, falling back to localStorage:', e); }
+      let initialized = false;
+      db_ref.on('value', (snap) => {
+        const fresh = snap.val() || {};
+        if(!initialized){
+          // First callback: take Firebase as authoritative source
+          db = fresh;
+          initialized = true;
+          resolve();
+        } else {
+          // Subsequent callbacks: another user changed Firebase.
+          // Merge their changes in, but never overwrite keys we're currently editing.
+          Object.keys(fresh).forEach(k => { if(!_dirtyKeys.has(k)) db[k] = fresh[k]; });
+          // Remove keys deleted from Firebase (by a bug or admin), unless we own them
+          Object.keys(db).forEach(k => { if(!(k in fresh) && !_dirtyKeys.has(k)) delete db[k]; });
+        }
+      }, (e) => {
+        console.warn('Firebase listener error, falling back to localStorage:', e);
+        if(!initialized){
+          try{ const raw=localStorage.getItem(SKEY); db=raw?JSON.parse(raw):{}; }catch(_){ db={}; }
+          initialized = true;
+          resolve();
+        }
+      });
+    });
   }
   // localStorage fallback
   try{
